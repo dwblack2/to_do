@@ -4,6 +4,7 @@ from datetime import date
 import calendar
 from pathlib import Path
 
+
 st.set_page_config(page_title="To Do", layout="wide")
 
 # ---------- File setup ----------
