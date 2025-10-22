@@ -181,13 +181,37 @@ calendar_tasks = st.session_state.tasks.copy()
 calendar_tasks["Due Date"] = pd.to_datetime(calendar_tasks["Due Date"], errors='coerce')
 
 today = date.today()
-col1, col2 = st.columns(2)
-with col1:
-    month = st.selectbox("Month", list(calendar.month_name)[1:], index=today.month - 1, key="month_select")
-with col2:
-    year = st.selectbox("Year", range(2025, 2101), index=today.year - 2025, key="year_select")
 
-month_num = list(calendar.month_name).index(month)
+# --- Initialize session state for month/year ---
+if "cal_month" not in st.session_state:
+    st.session_state.cal_month = today.month
+if "cal_year" not in st.session_state:
+    st.session_state.cal_year = today.year
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col1:  # Left arrow
+    if st.button("←"):
+        if st.session_state.cal_month == 1:
+            st.session_state.cal_month = 12
+            st.session_state.cal_year -= 1
+        else:
+            st.session_state.cal_month -= 1
+
+with col2:  # Month / Year display
+    st.markdown(f"### {calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}", unsafe_allow_html=True)
+
+with col3:  # Right arrow
+    if st.button("→"):
+        if st.session_state.cal_month == 12:
+            st.session_state.cal_month = 1
+            st.session_state.cal_year += 1
+        else:
+            st.session_state.cal_month += 1
+
+month_num = st.session_state.cal_month
+year = st.session_state.cal_year
+
 cal = calendar.Calendar(firstweekday=6)
 month_days = cal.monthdatescalendar(year, month_num)
 
@@ -227,7 +251,6 @@ if not day_tasks.empty:
     st.table(day_tasks[["Task", "Category", "Priority", "Completed"]])
 else:
     st.info("Nothing to do!")
-
 
 ##### Styling #####
 st.markdown("""
@@ -270,8 +293,3 @@ section[data-testid="stSidebar"] h3   /* Sidebar subheaders */ {
 }
 </style>
 """, unsafe_allow_html=True)
-
-
-
-
-
