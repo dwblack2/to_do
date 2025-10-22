@@ -242,15 +242,21 @@ html_calendar += "</table>"
 
 st.markdown(html_calendar, unsafe_allow_html=True)
 
-# --- Interactive day selection ---
-date_options = [d for d in all_dates if d.month == month_num]
-selected_day = st.selectbox("Select a day", date_options, format_func=lambda d: d.strftime("%Y-%m-%d"))
+# --- Interactive day selection (replace dropdown with mini calendar) ---
+selected_day = st.date_input(
+    "Select a day",
+    value=date.today(),
+    min_value=date(today.year, 1, 1),
+    max_value=date(today.year + 5, 12, 31)
+)
 
+# Filter tasks for the selected day
 day_tasks = calendar_tasks[calendar_tasks["Due Date"].dt.date == selected_day]
 if not day_tasks.empty:
     st.table(day_tasks[["Task", "Category", "Priority", "Completed"]])
 else:
     st.info("Nothing to do!")
+
 
 ##### Styling #####
 st.markdown("""
