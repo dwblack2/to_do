@@ -8,7 +8,13 @@ from pathlib import Path
 st.set_page_config(page_title="To Do", layout="wide")
 
 # ---------- File setup ----------
-DATA_FILE = Path("tasks.csv")
+username = st.text_input("Enter your name to load your tasks:", key="username")
+
+if not username:
+    st.warning("Please enter your name to start.")
+    st.stop()
+
+DATA_FILE = Path(f"tasks_{username}.csv")
 
 def load_tasks():
     if DATA_FILE.exists():
