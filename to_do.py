@@ -1,38 +1,83 @@
+## To do:
+### Disable dark mode display 
+### Change month/ year dropdowns to left and right arrows - start on current month
+### Change color of trashcan button to same color as background
+### Change how completed button looks
+### Change text color of tasks in calendar
+### Click on task to view info in calendar 
+### Filter by category in calendar? 
+### Change select day to calendar instead of dropdown (like in sidebar) 
+### Change normal text color to #556277 instead of black
+
 import streamlit as st
 import pandas as pd
 from datetime import date
 import calendar
 from pathlib import Path
 
-
 st.set_page_config(page_title="To Do", layout="wide")
 
 # ---------- File setup ----------
-username = st.text_input("Enter your name to load your tasks:", key="username")
+DATA_FOLDER = Path("user_tasks")
+DATA_FOLDER.mkdir(exist_ok=True)
 
-if not username:
-    st.warning("Please enter your name to start.")
-    st.stop()
-
-DATA_FILE = Path(f"tasks_{username}.csv")
-
-def load_tasks():
-    if DATA_FILE.exists():
-        return pd.read_csv(DATA_FILE)
+# --- Helper functions ---
+def load_tasks(data_file):
+    if data_file.exists():
+        return pd.read_csv(data_file)
     return pd.DataFrame(columns=["Task", "Category", "Due Date", "Priority", "Completed"])
 
-def save_tasks(df):
-    df.to_csv(DATA_FILE, index=False)
+def save_tasks(df, data_file):
+    df.to_csv(data_file, index=False)
 
-# Sample priority colors
-priority_colors = {"> 45 Minutes": "#832120", "15-45 Minutes": "#CE713B", "< 15 Minutes": "#FABC75"}
+# --- Priority Colors ---
+priority_colors = {
+    "> 45 Minutes": "#832120",
+    "15-45 Minutes": "#CE713B",
+    "< 15 Minutes": "#FABC75"
+}
 
-# Title
-st.markdown("<h1>Much To Do About Nothing!</h1>", unsafe_allow_html=True)
+# --- Login Page ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+if "secret_key" not in st.session_state:
+    st.session_state.secret_key = ""
 
-# --- Initialize tasks ---
+if not st.session_state.authenticated:
+    st.markdown(f"<h1>Much To Do About Nothing!</h1>", unsafe_allow_html=True)
+    st.markdown("Welcome! Please log in to access your to-do list.")
+
+    with st.form("login_form"):
+        user_name = st.text_input("Username")
+        secret_key = st.text_input("Password:", type="password")
+        submitted = st.form_submit_button("Log In")
+
+        if submitted:
+            if user_name and secret_key:
+                st.session_state.user_name = user_name
+                st.session_state.secret_key = secret_key
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.warning("Please enter both a name and secret key to continue.")
+    st.stop()
+
+# --- After login ---
+user_name = st.session_state.user_name
+secret_key = st.session_state.secret_key
+user_id = f"{user_name.lower().replace(' ', '_')}_{secret_key}"
+DATA_FILE = DATA_FOLDER / f"tasks_{user_id}.csv"
+
+# --- Load tasks ---
 if "tasks" not in st.session_state:
-    st.session_state.tasks = load_tasks()
+    st.session_state.tasks = load_tasks(DATA_FILE)
+
+tasks = st.session_state.tasks.copy()
+
+# --- Title ---
+st.markdown(f"<h1>Much To Do About Nothing!</h1>", unsafe_allow_html=True)
 
 # --- Sidebar: Add task ---
 with st.sidebar:
@@ -57,18 +102,14 @@ with st.sidebar:
                 [st.session_state.tasks, pd.DataFrame([new_task])],
                 ignore_index=True
             )
-            save_tasks(st.session_state.tasks)
+            save_tasks(st.session_state.tasks, DATA_FILE)
             st.success(f"Added: {task}")
 
 # --- Sidebar: Category overview ---
 st.sidebar.header("Category Overview")
 
-tasks = st.session_state.tasks.copy()
-
 if not tasks.empty:
     categories = sorted(tasks["Category"].dropna().unique().tolist())
-
-    # Separate active vs inactive categories
     active_categories = []
     inactive_categories = []
 
@@ -80,7 +121,6 @@ if not tasks.empty:
             else:
                 active_categories.append(cat)
 
-    # --- Active Categories ---
     st.sidebar.subheader("Active")
     if active_categories:
         for cat in active_categories:
@@ -96,17 +136,18 @@ if not tasks.empty:
                         )
                         if completed != row["Completed"]:
                             st.session_state.tasks.at[i, "Completed"] = completed
-                            save_tasks(st.session_state.tasks)
+                            save_tasks(st.session_state.tasks, DATA_FILE)
                     with col2:
-                        delete = st.button("🗑️", key=f"delete_{cat}_{i}")
+                        st.markdown(f'<div class="delete-button-wrapper-{i}"></div>', unsafe_allow_html=True)
+                        delete = st.button("X", key=f"delete_{cat}_{i}")
                         if delete:
                             st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
-                            save_tasks(st.session_state.tasks)
+                            save_tasks(st.session_state.tasks, DATA_FILE)
                             st.rerun()
+
     else:
         st.sidebar.info("No active tasks!")
 
-    # --- Inactive Categories ---
     st.sidebar.subheader("Inactive")
     if inactive_categories:
         for cat in inactive_categories:
@@ -122,18 +163,18 @@ if not tasks.empty:
                         )
                         if completed != row["Completed"]:
                             st.session_state.tasks.at[i, "Completed"] = completed
-                            save_tasks(st.session_state.tasks)
+                            save_tasks(st.session_state.tasks, DATA_FILE)
                     with col2:
-                        delete = st.button("🗑️", key=f"delete_inactive_{cat}_{i}")
+                        st.markdown(f'<div class="delete-button-wrapper-{i}"></div>', unsafe_allow_html=True)
+                        delete = st.button("X", key=f"delete_{cat}_{i}")
                         if delete:
                             st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
-                            save_tasks(st.session_state.tasks)
+                            save_tasks(st.session_state.tasks, DATA_FILE)
                             st.rerun()
     else:
         st.sidebar.info("No inactive categories.")
 else:
     st.sidebar.info("No tasks added yet.")
-
 
 # --- Calendar view ---
 calendar_tasks = st.session_state.tasks.copy()
@@ -141,7 +182,6 @@ calendar_tasks["Due Date"] = pd.to_datetime(calendar_tasks["Due Date"], errors='
 
 today = date.today()
 col1, col2 = st.columns(2)
-
 with col1:
     month = st.selectbox("Month", list(calendar.month_name)[1:], index=today.month - 1, key="month_select")
 with col2:
@@ -151,7 +191,6 @@ month_num = list(calendar.month_name).index(month)
 cal = calendar.Calendar(firstweekday=6)
 month_days = cal.monthdatescalendar(year, month_num)
 
-# Build HTML calendar
 html_calendar = "<table border='1' style='border-collapse: collapse; width: 100%; text-align: center; table-layout: fixed;'>"
 html_calendar += "<tr>" + "".join(f"<th>{day}</th>" for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]) + "</tr>"
 
@@ -170,7 +209,7 @@ for week in month_days:
                 if row["Completed"]:
                     tasks_text += f"<div style='background-color:#d3d3d3; color:#888; margin:2px; padding:2px; border-radius:4px; text-decoration:line-through; word-break: break-word;'>{row['Task']}</div>"
                 else:
-                    tasks_text += f"<div style='background-color:{color}; margin:2px; padding:2px; border-radius:4px; word-break: break-word;'>{row['Task']}</div>"
+                    tasks_text += f"<div style='background-color:{color}; color:white; margin:2px; padding:2px; border-radius:4px; word-break: break-word;'>{row['Task']}</div>"
             html_calendar += f"<td style='vertical-align: top; padding:2px;'><strong>{day.day}</strong><br>{tasks_text}</td>"
         else:
             html_calendar += f"<td style='vertical-align: top; padding:2px;'>{day.day}</td>"
@@ -188,6 +227,7 @@ if not day_tasks.empty:
     st.table(day_tasks[["Task", "Category", "Priority", "Completed"]])
 else:
     st.info("Nothing to do!")
+
 
 ##### Styling #####
 st.markdown("""
@@ -230,4 +270,8 @@ section[data-testid="stSidebar"] h3   /* Sidebar subheaders */ {
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+
+
 
