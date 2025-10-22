@@ -236,10 +236,11 @@ if not day_tasks.empty:
                 st.session_state.tasks.at[i, "Completed"] = completed
                 save_tasks(st.session_state.tasks, DATA_FILE)
 
-        with col2:  # Middle: task name + description
-            st.markdown(f"**{row['Task']}**")
-            if "Description" in row and row["Description"]:
-                st.markdown(f"_{row['Description']}_")  # show description
+        with col2:  # Middle: task + description
+            task_text = f"{row['Task']}"
+            if "Description" in row and pd.notna(row["Description"]) and row["Description"] != "":
+                task_text += f": {row['Description']}"
+            st.markdown(task_text)
 
         with col3:  # Right: delete button
             delete = st.button("X", key=f"main_delete_{i}")
