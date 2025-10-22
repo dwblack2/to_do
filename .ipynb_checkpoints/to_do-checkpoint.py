@@ -1,13 +1,5 @@
 ## To do:
-### Disable dark mode display 
-### Change month/ year dropdowns to left and right arrows - start on current month
-### Change color of trashcan button to same color as background
 ### Change how completed button looks
-### Change text color of tasks in calendar
-### Click on task to view info in calendar 
-### Filter by category in calendar? 
-### Change select day to calendar instead of dropdown (like in sidebar) 
-### Change normal text color to #556277 instead of black
 
 import streamlit as st
 import pandas as pd
@@ -87,6 +79,7 @@ with st.sidebar:
         category = st.text_input("Category")
         due_date = st.date_input("Due date", value=date.today())
         priority = st.selectbox("Time", ["> 45 Minutes", "15-45 Minutes", "< 15 Minutes"])
+        description = st.text_area("Description (optional)")  # NEW DESCRIPTION FIELD
         submitted = st.form_submit_button("Add task")
 
         if submitted and task:
@@ -96,7 +89,8 @@ with st.sidebar:
                 "Category": category,
                 "Due Date": due_date_str,
                 "Priority": priority,
-                "Completed": False
+                "Completed": False,
+                "Description": description  # store description
             }
             st.session_state.tasks = pd.concat(
                 [st.session_state.tasks, pd.DataFrame([new_task])],
@@ -104,6 +98,7 @@ with st.sidebar:
             )
             save_tasks(st.session_state.tasks, DATA_FILE)
             st.success(f"Added: {task}")
+
 
 # --- Sidebar: Category overview ---
 st.sidebar.header("Category Overview")
@@ -124,57 +119,30 @@ if not tasks.empty:
     st.sidebar.subheader("Active")
     if active_categories:
         for cat in active_categories:
-            with st.sidebar.expander(cat, expanded=False):
+            with st.sidebar.expander("", expanded=False):
+                # Display category name as H3 with Helvetica and dark blue
+                st.markdown(f'<h5 style="font-family:Helvetica; color:#556277;">{cat}</h5>', unsafe_allow_html=True)
+
                 cat_tasks = tasks[tasks["Category"] == cat]
                 for i, row in cat_tasks.iterrows():
-                    col1, col2 = st.columns([0.85, 0.15])
-                    with col1:
-                        completed = st.checkbox(
-                            f"{row['Task']} | Due {row['Due Date']} | {row['Priority']}",
-                            value=row["Completed"],
-                            key=f"sidebar_{cat}_{i}"
-                        )
-                        if completed != row["Completed"]:
-                            st.session_state.tasks.at[i, "Completed"] = completed
-                            save_tasks(st.session_state.tasks, DATA_FILE)
-                    with col2:
-                        st.markdown(f'<div class="delete-button-wrapper-{i}"></div>', unsafe_allow_html=True)
-                        delete = st.button("X", key=f"delete_{cat}_{i}")
-                        if delete:
-                            st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
-                            save_tasks(st.session_state.tasks, DATA_FILE)
-                            st.rerun()
-
+                    st.markdown(f"- {row['Task']}")
     else:
         st.sidebar.info("No active tasks!")
 
     st.sidebar.subheader("Inactive")
     if inactive_categories:
         for cat in inactive_categories:
-            with st.sidebar.expander(cat, expanded=False):
+            with st.sidebar.expander("", expanded=False):
+                # Display category name as H3 with Helvetica and dark blue
+                st.markdown(f'<h5 style="font-family:Helvetica; color:#556277;">{cat}</h5>', unsafe_allow_html=True)
                 cat_tasks = tasks[tasks["Category"] == cat]
                 for i, row in cat_tasks.iterrows():
-                    col1, col2 = st.columns([0.85, 0.15])
-                    with col1:
-                        completed = st.checkbox(
-                            f"{row['Task']} | Due {row['Due Date']} | {row['Priority']}",
-                            value=row["Completed"],
-                            key=f"inactive_{cat}_{i}"
-                        )
-                        if completed != row["Completed"]:
-                            st.session_state.tasks.at[i, "Completed"] = completed
-                            save_tasks(st.session_state.tasks, DATA_FILE)
-                    with col2:
-                        st.markdown(f'<div class="delete-button-wrapper-{i}"></div>', unsafe_allow_html=True)
-                        delete = st.button("X", key=f"delete_{cat}_{i}")
-                        if delete:
-                            st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
-                            save_tasks(st.session_state.tasks, DATA_FILE)
-                            st.rerun()
+                    st.markdown(f"- {row['Task']}")
     else:
         st.sidebar.info("No inactive categories.")
 else:
     st.sidebar.info("No tasks added yet.")
+
 
 # --- Calendar view ---
 calendar_tasks = st.session_state.tasks.copy()
@@ -252,10 +220,36 @@ selected_day = st.date_input(
 
 # Filter tasks for the selected day
 day_tasks = calendar_tasks[calendar_tasks["Due Date"].dt.date == selected_day]
+
 if not day_tasks.empty:
-    st.table(day_tasks[["Task", "Category", "Priority", "Completed"]])
+    for i, row in day_tasks.iterrows():
+        # Three columns: checkbox | task info | delete button
+        col1, col2, col3 = st.columns([0.1, 0.75, 0.15])
+
+        with col1:  # Left: checkbox
+            completed = st.checkbox(
+                "",
+                value=row["Completed"],
+                key=f"main_completed_{i}"
+            )
+            if completed != row["Completed"]:
+                st.session_state.tasks.at[i, "Completed"] = completed
+                save_tasks(st.session_state.tasks, DATA_FILE)
+
+        with col2:  # Middle: task name + description
+            st.markdown(f"**{row['Task']}**")
+            if "Description" in row and row["Description"]:
+                st.markdown(f"_{row['Description']}_")  # show description
+
+        with col3:  # Right: delete button
+            delete = st.button("X", key=f"main_delete_{i}")
+            if delete:
+                st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
+                save_tasks(st.session_state.tasks, DATA_FILE)
+                st.rerun()
 else:
     st.info("Nothing to do!")
+
 
 
 ##### Styling #####
@@ -300,4 +294,4 @@ section[data-testid="stSidebar"] h3   /* Sidebar subheaders */ {
 </style>
 """, unsafe_allow_html=True)
 
-## This is a test
+
