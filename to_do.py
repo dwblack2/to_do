@@ -154,24 +154,29 @@ if "cal_year" not in st.session_state:
 
 col1, col2, col3 = st.columns([1, 2, 1])
 
-with col1:  
-    if st.button("←"):
-        if st.session_state.cal_month == 1:
-            st.session_state.cal_month = 12
-            st.session_state.cal_year -= 1
-        else:
-            st.session_state.cal_month -= 1
+prev_clicked = col1.button("←")
+next_clicked = col3.button("→")
 
-with col2:  
-    st.markdown(f"### {calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}", unsafe_allow_html=True)
+if prev_clicked:
+    if st.session_state.cal_month == 1:
+        st.session_state.cal_month = 12
+        st.session_state.cal_year -= 1
+    else:
+        st.session_state.cal_month -= 1
 
-with col3:  
-    if st.button("→"):
-        if st.session_state.cal_month == 12:
-            st.session_state.cal_month = 1
-            st.session_state.cal_year += 1
-        else:
-            st.session_state.cal_month += 1
+if next_clicked:
+    if st.session_state.cal_month == 12:
+        st.session_state.cal_month = 1
+        st.session_state.cal_year += 1
+    else:
+        st.session_state.cal_month += 1
+
+with col2:
+    st.markdown(
+        f"### {calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}",
+        unsafe_allow_html=True
+    )
+
 
 month_num = st.session_state.cal_month
 year = st.session_state.cal_year
