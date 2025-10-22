@@ -119,10 +119,8 @@ if not tasks.empty:
     st.sidebar.subheader("Active")
     if active_categories:
         for cat in active_categories:
-            with st.sidebar.expander("", expanded=False):
-                # Display category name as H3 with Helvetica and dark blue
-                st.markdown(f'<h5 style="font-family:Helvetica; color:#556277;">{cat}</h5>', unsafe_allow_html=True)
-
+            # Category name now appears as the label of the expander
+            with st.sidebar.expander(f"### {cat}", expanded=False):
                 cat_tasks = tasks[tasks["Category"] == cat]
                 for i, row in cat_tasks.iterrows():
                     st.markdown(f"- {row['Task']}")
@@ -132,9 +130,7 @@ if not tasks.empty:
     st.sidebar.subheader("Inactive")
     if inactive_categories:
         for cat in inactive_categories:
-            with st.sidebar.expander("", expanded=False):
-                # Display category name as H3 with Helvetica and dark blue
-                st.markdown(f'<h5 style="font-family:Helvetica; color:#556277;">{cat}</h5>', unsafe_allow_html=True)
+            with st.sidebar.expander(f"### {cat}", expanded=False):
                 cat_tasks = tasks[tasks["Category"] == cat]
                 for i, row in cat_tasks.iterrows():
                     st.markdown(f"- {row['Task']}")
@@ -142,7 +138,6 @@ if not tasks.empty:
         st.sidebar.info("No inactive categories.")
 else:
     st.sidebar.info("No tasks added yet.")
-
 
 # --- Calendar view ---
 calendar_tasks = st.session_state.tasks.copy()
