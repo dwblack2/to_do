@@ -1,6 +1,3 @@
-## To do:
-### Change how completed button looks
-
 import streamlit as st
 import pandas as pd
 from datetime import date
@@ -9,11 +6,13 @@ from pathlib import Path
 
 st.set_page_config(page_title="To Do", layout="wide")
 
-# ---------- File setup ----------
+#####################################
+
+## File Setup
 DATA_FOLDER = Path("user_tasks")
 DATA_FOLDER.mkdir(exist_ok=True)
 
-# --- Helper functions ---
+## Helper functions 
 def load_tasks(data_file):
     if data_file.exists():
         return pd.read_csv(data_file)
@@ -22,14 +21,14 @@ def load_tasks(data_file):
 def save_tasks(df, data_file):
     df.to_csv(data_file, index=False)
 
-# --- Priority Colors ---
+## Colors for Task Time 
 priority_colors = {
     "> 45 Minutes": "#832120",
     "15-45 Minutes": "#CE713B",
     "< 15 Minutes": "#FABC75"
 }
 
-# --- Login Page ---
+## Login Page 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user_name" not in st.session_state:
@@ -56,22 +55,24 @@ if not st.session_state.authenticated:
                 st.warning("Please enter both a name and secret key to continue.")
     st.stop()
 
-# --- After login ---
+## After login 
 user_name = st.session_state.user_name
 secret_key = st.session_state.secret_key
 user_id = f"{user_name.lower().replace(' ', '_')}_{secret_key}"
 DATA_FILE = DATA_FOLDER / f"tasks_{user_id}.csv"
 
-# --- Load tasks ---
+## Load tasks
 if "tasks" not in st.session_state:
     st.session_state.tasks = load_tasks(DATA_FILE)
 
 tasks = st.session_state.tasks.copy()
 
-# --- Title ---
+#####################################
+
+## Title 
 st.markdown(f"<h1>Much To Do About Nothing!</h1>", unsafe_allow_html=True)
 
-# --- Sidebar: Add task ---
+## Sidebar: Add task 
 with st.sidebar:
     st.header("+ Add Task")
     with st.form("new_task_form", clear_on_submit=True):
@@ -79,7 +80,7 @@ with st.sidebar:
         category = st.text_input("Category")
         due_date = st.date_input("Due date", value=date.today())
         priority = st.selectbox("Time", ["> 45 Minutes", "15-45 Minutes", "< 15 Minutes"])
-        description = st.text_area("Description (optional)")  # NEW DESCRIPTION FIELD
+        description = st.text_area("Description (optional)")   
         submitted = st.form_submit_button("Add task")
 
         if submitted and task:
@@ -90,7 +91,7 @@ with st.sidebar:
                 "Due Date": due_date_str,
                 "Priority": priority,
                 "Completed": False,
-                "Description": description  # store description
+                "Description": description  
             }
             st.session_state.tasks = pd.concat(
                 [st.session_state.tasks, pd.DataFrame([new_task])],
@@ -100,7 +101,7 @@ with st.sidebar:
             st.success(f"Added: {task}")
 
 
-# --- Sidebar: Category overview ---
+## Sidebar: Category overview 
 st.sidebar.header("Category Overview")
 
 if not tasks.empty:
@@ -139,13 +140,13 @@ if not tasks.empty:
 else:
     st.sidebar.info("No tasks added yet.")
 
-# --- Calendar view ---
+## Calendar view 
 calendar_tasks = st.session_state.tasks.copy()
 calendar_tasks["Due Date"] = pd.to_datetime(calendar_tasks["Due Date"], errors='coerce')
 
 today = date.today()
 
-# --- Initialize session state for month/year ---
+## Initialize session state for month/year 
 if "cal_month" not in st.session_state:
     st.session_state.cal_month = today.month
 if "cal_year" not in st.session_state:
@@ -153,7 +154,7 @@ if "cal_year" not in st.session_state:
 
 col1, col2, col3 = st.columns([1, 2, 1])
 
-with col1:  # Left arrow
+with col1:  
     if st.button("←"):
         if st.session_state.cal_month == 1:
             st.session_state.cal_month = 12
@@ -161,10 +162,10 @@ with col1:  # Left arrow
         else:
             st.session_state.cal_month -= 1
 
-with col2:  # Month / Year display
+with col2:  
     st.markdown(f"### {calendar.month_name[st.session_state.cal_month]} {st.session_state.cal_year}", unsafe_allow_html=True)
 
-with col3:  # Right arrow
+with col3:  
     if st.button("→"):
         if st.session_state.cal_month == 12:
             st.session_state.cal_month = 1
@@ -205,7 +206,7 @@ html_calendar += "</table>"
 
 st.markdown(html_calendar, unsafe_allow_html=True)
 
-# --- Interactive day selection (replace dropdown with mini calendar) ---
+## Interactive day selection (replace dropdown with mini calendar) 
 selected_day = st.date_input(
     "Select a day",
     value=date.today(),
@@ -213,15 +214,14 @@ selected_day = st.date_input(
     max_value=date(today.year + 5, 12, 31)
 )
 
-# Filter tasks for the selected day
+## Filter tasks for the selected day
 day_tasks = calendar_tasks[calendar_tasks["Due Date"].dt.date == selected_day]
 
 if not day_tasks.empty:
     for i, row in day_tasks.iterrows():
-        # Three columns: checkbox | task info | delete button
         col1, col2, col3 = st.columns([0.1, 0.75, 0.15])
 
-        with col1:  # Left: checkbox
+        with col1:  
             completed = st.checkbox(
                 "",
                 value=row["Completed"],
@@ -231,13 +231,13 @@ if not day_tasks.empty:
                 st.session_state.tasks.at[i, "Completed"] = completed
                 save_tasks(st.session_state.tasks, DATA_FILE)
 
-        with col2:  # Middle: task + description
+        with col2:  
             task_text = f"{row['Task']}"
             if "Description" in row and pd.notna(row["Description"]) and row["Description"] != "":
                 task_text += f": {row['Description']}"
             st.markdown(task_text)
 
-        with col3:  # Right: delete button
+        with col3:  
             delete = st.button("X", key=f"main_delete_{i}")
             if delete:
                 st.session_state.tasks = st.session_state.tasks.drop(i).reset_index(drop=True)
@@ -246,9 +246,9 @@ if not day_tasks.empty:
 else:
     st.info("Nothing to do!")
 
+#####################################
 
-
-##### Styling #####
+## HTML Styling 
 st.markdown("""
 <style>
     .stApp { background-color: #e2ebf3; }
